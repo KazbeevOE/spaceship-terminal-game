@@ -20,7 +20,8 @@ def draw(canvas):
 
   for s in range(max_amount_of_stars):
     row, column, symbol = generate_star_parametres(window_height, window_width, border_size)
-    coroutine = blink(canvas, row, column, symbol)
+    delay = random.randint(0, 3)
+    coroutine = blink(canvas, row, column, symbol, delay)
     coroutines.append(coroutine)
 
   while True:
@@ -36,19 +37,27 @@ def generate_star_parametres(window_height, window_width, border_size):
   symbol = random.choice(STAR_SHAPES)
   return (row, column, symbol)
 
-async def blink(canvas, row, column, symbol='*'):
-    while True:
+async def blink(canvas, row, column, symbol='*', delay=0):
+  while True:
+    if delay == 0:
       canvas.addstr(row, column, symbol, curses.A_DIM)
       await sleep(2)
+      delay += 1
 
+    if delay == 1:
       canvas.addstr(row, column, symbol)
       await sleep(0.3)
+      delay += 1
 
+    if delay == 2:
       canvas.addstr(row, column, symbol, curses.A_BOLD)
       await sleep(0.5)
-
+      delay += 1
+    
+    if delay == 3:
       canvas.addstr(row, column, symbol)
       await sleep(0.3)
+      delay = 0
 
 async def sleep(tics):
   iteration_count = int(tics * 10)
