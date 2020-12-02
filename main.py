@@ -4,6 +4,9 @@ import time
 import random
 
 
+from fire_animation import fire
+
+
 TIC_TIMEOUT = 0.1
 STAR_SHAPES = '+*.:'
 
@@ -15,8 +18,13 @@ def draw(canvas):
   canvas.border()
   curses.curs_set(False)
   canvas.refresh()
+  mid_row = window_height // 2
+  mid_column = window_width // 2
 
   coroutines = []
+
+  shot_coroutine = fire(canvas, mid_row, mid_column)
+  coroutines.append(shot_coroutine)
 
   for s in range(max_amount_of_stars):
     row, column, symbol = generate_star_parametres(window_height, window_width, border_size)
@@ -26,10 +34,14 @@ def draw(canvas):
 
   while True:
     for coroutine in coroutines:
-      coroutine.send(None)
+      try:
+        coroutine.send(None)
+      except StopIteration:
+        coroutines.remove(coroutine)
 
     time.sleep(0.1)
     canvas.refresh()
+
 
 def generate_star_parametres(window_height, window_width, border_size):
   row = random.randint(1, window_height - border_size - 1)
