@@ -7,7 +7,7 @@ import os
 from itertools import cycle
 
 from fire_animation import fire
-from curses_tools import draw_frame
+from curses_tools import draw_frame, read_controls
 
 
 TIC_TIMEOUT = 0.1
@@ -23,20 +23,24 @@ def draw(canvas):
   max_amount_of_stars = random.randint(50, 100)
 
   canvas.border()
+  canvas.nodelay(True)
   curses.curs_set(False)
-  canvas.refresh()
 
   coroutines = []
   spaceship_frames = []
+  frames_container = []
 
   for file_number in range(1, 3):
     with open(ROCKET_FRAMES_PATH + f'/rocket_frame_{file_number}.txt', 'r') as rf:
       rocket_frame = rf.read()
     spaceship_frames.append(rocket_frame)
   
-  spaceship_coroutine = animate_spaceship(canvas, mid_row, mid_column, spaceship_frames)
-  coroutines.append(spaceship_coroutine)
+  spaceship_animation_coroutine = animate_spaceship(frames_container, spaceship_frames)
+  spaceship_run_coroutine = run_spaceship(canvas, frames_container, border_size)
 
+  coroutines.append(spaceship_animation_coroutine)
+  coroutines.append(spaceship_run_coroutine)
+  
   shot_coroutine = fire(canvas, mid_row, mid_column)
   coroutines.append(shot_coroutine)
 
@@ -56,14 +60,34 @@ def draw(canvas):
     time.sleep(0.1)
     canvas.refresh()
 
-async def animate_spaceship(canvas, row, column, spaceship_frames):
-  frames_cycle = cycle(spaceship_frames)
+async def animate_spaceship(frames_container, frames):
+  frames_cycle = cycle(frames)
 
   while True:
+    frames_container.clear()
     frame = next(frames_cycle)
-    draw_frame(canvas, row, column, frame)
+    frames_container.append(frame)
     await asyncio.sleep(0)
-    draw_frame(canvas, row, column, frame, negative=True)
+
+async def run_spaceship(canvas, frames_container, border_size):
+  main_window_height, main_window_width = canvas.getmaxyx()
+  start_ship_row = round(main_window_height) - border_size
+  start_ship_column = round(main_window_width / 2)
+  frame_pos_x = start_ship_column
+  frame_pos_y = start_ship_row
+
+  while True:
+    direction_y, direction_x, spacepressed = read_controls(canvas)
+
+    frame_pos_x += direction_x
+    frame_pos_y += direction_y
+
+    frame = frames_container[0]
+
+    draw_frame(canvas, frame_pos_y, frame_pos_x, frame)
+    await asyncio.sleep(0)
+    draw_frame(canvas, frame_pos_y, frame_pos_x, frame, negative=True)
+
 
 def generate_star_parametres(window_height, window_width, border_size):
   row = random.randint(1, window_height - border_size - 1)
