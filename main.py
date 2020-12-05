@@ -15,6 +15,7 @@ TIC_TIMEOUT = 0.1
 STAR_SHAPES = '+*.:'
 FRAMES_PATH = 'frames'
 ROCKET_FRAMES_PATH = os.path.join(FRAMES_PATH, 'rocket_frames')
+GARBAGE_FRAMES_PATH = os.path.join(FRAMES_PATH, 'garbage_frames')
 
 def draw(canvas):
   border_size = 1
@@ -33,17 +34,21 @@ def draw(canvas):
     ]
 
   spaceship_frames = load_frames_from_dir(ROCKET_FRAMES_PATH)
-
   spaceship_animation_coroutine = animate_spaceship(frames_container, spaceship_frames)
 
   spaceship_run_coroutine = run_spaceship(canvas, frames_container, border_size)
 
   shot_coroutine = fire(canvas, mid_row, mid_column)
 
+  garbage_frames = load_frames_from_dir(GARBAGE_FRAMES_PATH)
+  garbage_animation_coroutine = animate_fly_garbage(canvas, 10, garbage_frames[0])
+
   coroutines.append(spaceship_animation_coroutine)
   coroutines.append(spaceship_run_coroutine)
   
   coroutines.append(shot_coroutine)
+
+  coroutines.append(garbage_animation_coroutine)
 
   while True:
     for coroutine in coroutines:
@@ -140,6 +145,21 @@ async def run_spaceship(canvas, frames_container, border_size):
     await asyncio.sleep(0)
     draw_frame(canvas, frame_pos_y, frame_pos_x, frame, negative=True)
 
+
+async def animate_flying_garbage(canvas, column, garbage_frame, speed=0.5):
+    """Animate garbage, flying from top to bottom. Сolumn position will stay same, as specified on start."""
+    rows_number, columns_number = canvas.getmaxyx()
+
+    column = max(column, 0)
+    column = min(column, columns_number - 1)
+
+    row = 0
+
+    while row < rows_number:
+        draw_frame(canvas, row, column, garbage_frame)
+        await asyncio.sleep(0)
+        draw_frame(canvas, row, column, garbage_frame, negative=True)
+        row += speed
  
 if __name__ == '__main__':
     curses.update_lines_cols()
