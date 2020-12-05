@@ -41,7 +41,7 @@ def draw(canvas):
   shot_coroutine = fire(canvas, mid_row, mid_column)
 
   garbage_frames = load_frames_from_dir(GARBAGE_FRAMES_PATH)
-  garbage_animation_coroutine = animate_fly_garbage(canvas, 10, garbage_frames[0])
+  garbage_animation_coroutine = animate_flying_garbage(canvas, 10, garbage_frames[0])
 
   coroutines.append(spaceship_animation_coroutine)
   coroutines.append(spaceship_run_coroutine)
