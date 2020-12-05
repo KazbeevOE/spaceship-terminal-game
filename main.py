@@ -7,7 +7,7 @@ import os
 from itertools import cycle
 
 from fire_animation import fire
-from curses_tools import draw_frame, read_controls
+from curses_tools import draw_frame, read_controls, get_frame_size
 from frames_loader import load_frames_from_dir
 
 
@@ -108,10 +108,14 @@ async def animate_spaceship(frames_container, frames):
 
 async def run_spaceship(canvas, frames_container, border_size):
   main_window_height, main_window_width = canvas.getmaxyx()
-  start_ship_row = round(main_window_height) - border_size
-  start_ship_column = round(main_window_width / 2)
-  frame_pos_x = start_ship_column
-  frame_pos_y = start_ship_row
+
+  start_ship_row = main_window_height - border_size
+  start_ship_column = main_window_width / 2
+
+  frame_size_y, frame_size_x = get_frame_size(frames_container[0])
+
+  frame_pos_x = round(start_ship_row) - round(frame_size_x / 2)
+  frame_pos_y = round(start_ship_column)
 
   while True:
     direction_y, direction_x, spacepressed = read_controls(canvas)
@@ -119,6 +123,17 @@ async def run_spaceship(canvas, frames_container, border_size):
     frame_pos_x += direction_x
     frame_pos_y += direction_y
 
+    frame_pos_x_max = frame_pos_x + frame_size_x
+    frame_pos_y_max = frame_pos_y + frame_size_y
+
+    game_field_x_max= main_window_width - border_size
+    game_field_y_max = main_window_height - border_size
+
+    frame_pos_x = min(frame_pos_x_max, game_field_x_max) - frame_size_x
+    frame_pos_y = min(frame_pos_y_max, game_field_y_max) - frame_size_y
+
+    frame_pos_x = max(frame_pos_x, border_size)
+    frame_pos_y = max(frame_pos_y, border_size)
     frame = frames_container[0]
 
     draw_frame(canvas, frame_pos_y, frame_pos_x, frame)
