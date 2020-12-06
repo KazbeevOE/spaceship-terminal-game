@@ -19,46 +19,56 @@ GARBAGE_FRAMES_PATH = os.path.join(FRAMES_PATH, 'garbage_frames')
 
 def draw(canvas):
   border_size = 1
-  window_heigh, window_width = canvas.getmaxyx()
-  mid_row = round(window_heigh - border_size)
+  level = [0]
+  window_height, window_width = canvas.getmaxyx()
+  mid_row = round(window_height - border_size)
   mid_column = round(window_width / 2)
-
   frames_container = []
 
-  canvas.border()
   canvas.nodelay(True)
   curses.curs_set(False)
 
+  game_area_height = window_height - border_size
+  game_area_width = window_width
+  ga_begin_y = border_size
+  ga_begin_x = 0
+  game_area = canvas.derwin(
+    game_area_height,
+    game_area_width,
+    ga_begin_y,
+    ga_begin_x
+    )
+  game_area.border()
+
   coroutines = [
-    blink(canvas, row, column, symbol, random.randint(0, 3)) for row, column, symbol in generate_star_parametres(canvas, border_size, random.randint(50, 100))
+    blink(game_area, row, column, symbol, random.randint(0, 3)) for row, column, symbol in generate_star_parametres(game_area, border_size, random.randint(50, 100))
     ]
 
   spaceship_frames = load_frames_from_dir(ROCKET_FRAMES_PATH)
   spaceship_animation_coroutine = animate_spaceship(frames_container, spaceship_frames)
 
-  spaceship_run_coroutine = run_spaceship(canvas, frames_container, border_size)
+  spaceship_run_coroutine = run_spaceship(game_area, frames_container, border_size)
 
-  shot_coroutine = fire(canvas, mid_row, mid_column)
+  shot_coroutine = fire(game_area, mid_row, mid_column)
 
   garbage_frames = load_frames_from_dir(GARBAGE_FRAMES_PATH)
-  garbage_animation_coroutine = animate_flying_garbage(canvas, 10, garbage_frames[0])
+  fill_orbit_coroutine = fill_orbit_with_garbage(
+    game_area, 
+    coroutines, 
+    border_size, 
+    level, 
+    garbage_frames
+  )
 
   coroutines.append(spaceship_animation_coroutine)
   coroutines.append(spaceship_run_coroutine)
   
   coroutines.append(shot_coroutine)
 
-  coroutines.append(garbage_animation_coroutine)
+  coroutines.append(fill_orbit_coroutine)
 
-  while True:
-    for coroutine in coroutines:
-      try:
-        coroutine.send(None)
-      except StopIteration:
-        coroutines.remove(coroutine)
-
-    time.sleep(0.1)
-    canvas.refresh()
+  screens = (canvas, game_area)
+  run_event_loop(screens, coroutines)
 
 
 async def blink(canvas, row, column, symbol='*', delay=0):
@@ -84,7 +94,7 @@ async def blink(canvas, row, column, symbol='*', delay=0):
       delay = 0
 
 
-async def go_to_sleep(tics):
+async def go_to_sleep(tics=1):
   iteration_count = int(tics * 10)
 
   for _ in range(iteration_count):
@@ -146,6 +156,32 @@ async def run_spaceship(canvas, frames_container, border_size):
     draw_frame(canvas, frame_pos_y, frame_pos_x, frame, negative=True)
 
 
+
+async def fill_orbit_with_garbage(canvas, coroutines, border_size, level, garbage_frames, timeout_minimal=0.1):
+  _, columns_number = canvas.getmaxyx()
+  
+  while True:
+    garbage_frame = random.choice(garbage_frames)
+    _, garbage_frame_size_x = get_frame_size(garbage_frame)
+    column = random.randint(
+      border_size,
+      columns_number - border_size - garbage_frame_size_x)
+    
+    garbage_coroutine = animate_flying_garbage(canvas, column, garbage_frame)
+    coroutines.append(garbage_coroutine)
+    garbage_respawn_timeout = calculate_respawn_timeout(level)
+
+    if garbage_respawn_timeout <= timeout_minimal:
+      garbage_respawn_timeout = timeout_minimal
+    await go_to_sleep(garbage_respawn_timeout)
+
+
+def calculate_respawn_timeout(level, initial_timeout=5, complexity_factor=5):
+    timeout_step = level[0] / complexity_factor
+    respawn_timeout = initial_timeout - timeout_step
+    return respawn_timeout
+
+
 async def animate_flying_garbage(canvas, column, garbage_frame, speed=0.5):
     """Animate garbage, flying from top to bottom. Сolumn position will stay same, as specified on start."""
     rows_number, columns_number = canvas.getmaxyx()
@@ -161,6 +197,27 @@ async def animate_flying_garbage(canvas, column, garbage_frame, speed=0.5):
         draw_frame(canvas, row, column, garbage_frame, negative=True)
         row += speed
  
+
+def run_event_loop(screens, coroutines):
+  while True:
+    index = 0
+
+    while index < len(coroutines):
+      coroutine = coroutines[index]
+
+      try:
+        coroutine.send(None)
+      except StopIteration:
+        index = coroutines.index(coroutine)
+        coroutines.remove(coroutine)
+      else:
+        index += 1
+
+    for screen in screens:
+      screen.refresh()
+    time.sleep(TIC_TIMEOUT)
+
+
 if __name__ == '__main__':
     curses.update_lines_cols()
     curses.wrapper(draw)
