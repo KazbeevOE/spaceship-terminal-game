@@ -10,6 +10,7 @@ from fire_animation import fire
 from curses_tools import draw_frame, read_controls, get_frame_size
 from frames_loader import load_frames_from_dir
 from physics import update_speed
+from space_garbage import animate_flying_garbage, obstacles
 
 
 TIC_TIMEOUT = 0.1
@@ -17,6 +18,7 @@ STAR_SHAPES = '+*.:'
 FRAMES_PATH = 'frames'
 ROCKET_FRAMES_PATH = os.path.join(FRAMES_PATH, 'rocket_frames')
 GARBAGE_FRAMES_PATH = os.path.join(FRAMES_PATH, 'garbage_frames')
+
 
 def draw(canvas):
   border_size = 1
@@ -154,8 +156,6 @@ async def run_spaceship(canvas, coroutines, frames_container, border_size):
     await asyncio.sleep(0)
     draw_frame(canvas, frame_pos_y, frame_pos_x, frame, negative=True)
 
-
-
 async def fill_orbit_with_garbage(canvas, coroutines, border_size, level, garbage_frames, timeout_minimal=0.1):
   _, columns_number = canvas.getmaxyx()
   
@@ -168,6 +168,7 @@ async def fill_orbit_with_garbage(canvas, coroutines, border_size, level, garbag
     
     garbage_coroutine = animate_flying_garbage(canvas, column, garbage_frame)
     coroutines.append(garbage_coroutine)
+
     garbage_respawn_timeout = calculate_respawn_timeout(level)
 
     if garbage_respawn_timeout <= timeout_minimal:
@@ -180,22 +181,6 @@ def calculate_respawn_timeout(level, initial_timeout=5, complexity_factor=5):
     respawn_timeout = initial_timeout - timeout_step
     return respawn_timeout
 
-
-async def animate_flying_garbage(canvas, column, garbage_frame, speed=0.5):
-    """Animate garbage, flying from top to bottom. Сolumn position will stay same, as specified on start."""
-    rows_number, columns_number = canvas.getmaxyx()
-
-    column = max(column, 0)
-    column = min(column, columns_number - 1)
-
-    row = 0
-
-    while row < rows_number:
-        draw_frame(canvas, row, column, garbage_frame)
-        await asyncio.sleep(0)
-        draw_frame(canvas, row, column, garbage_frame, negative=True)
-        row += speed
- 
 
 def run_event_loop(screens, coroutines):
   while True:
