@@ -27,33 +27,22 @@ def draw(canvas):
 
   canvas.nodelay(True)
   curses.curs_set(False)
-
-  game_area_height = window_height - border_size
-  game_area_width = window_width
-  ga_begin_y = border_size
-  ga_begin_x = 0
-  game_area = canvas.derwin(
-    game_area_height,
-    game_area_width,
-    ga_begin_y,
-    ga_begin_x
-    )
-  game_area.border()
+  canvas.border()
 
   coroutines = [
-    blink(game_area, row, column, symbol, random.randint(0, 3)) for row, column, symbol in generate_star_parametres(game_area, border_size, random.randint(50, 100))
+    blink(canvas, row, column, symbol, random.randint(0, 3)) for row, column, symbol in generate_star_parametres(canvas, border_size, random.randint(50, 100))
     ]
 
   spaceship_frames = load_frames_from_dir(ROCKET_FRAMES_PATH)
   spaceship_animation_coroutine = animate_spaceship(frames_container, spaceship_frames)
 
-  spaceship_run_coroutine = run_spaceship(game_area, frames_container, border_size)
+  spaceship_run_coroutine = run_spaceship(canvas, frames_container, border_size)
 
-  shot_coroutine = fire(game_area, mid_row, mid_column)
+  shot_coroutine = fire(canvas, mid_row, mid_column)
 
   garbage_frames = load_frames_from_dir(GARBAGE_FRAMES_PATH)
   fill_orbit_coroutine = fill_orbit_with_garbage(
-    game_area, 
+    canvas, 
     coroutines, 
     border_size, 
     level, 
@@ -67,7 +56,7 @@ def draw(canvas):
 
   coroutines.append(fill_orbit_coroutine)
 
-  screens = (canvas, game_area)
+  screens = (canvas, canvas)
   run_event_loop(screens, coroutines)
 
 
