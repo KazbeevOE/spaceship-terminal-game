@@ -10,7 +10,7 @@ from fire_animation import fire
 from curses_tools import draw_frame, read_controls, get_frame_size
 from frames_loader import load_frames_from_dir
 from physics import update_speed
-from space_garbage import animate_flying_garbage, obstacles
+from space_garbage import animate_flying_garbage
 
 
 TIC_TIMEOUT = 0.1

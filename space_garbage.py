@@ -4,6 +4,7 @@ from curses_tools import get_frame_size, draw_frame
 from obstacles import Obstacle
 
 obstacles = []
+obstacles_in_last_collisions = []
 
 
 async def animate_flying_garbage(canvas, column, garbage_frame, speed=0.5):
@@ -22,12 +23,15 @@ async def animate_flying_garbage(canvas, column, garbage_frame, speed=0.5):
     try:
 
       while row < rows_number:
-          draw_frame(canvas, row, column, garbage_frame)
-          await asyncio.sleep(0)
-          draw_frame(canvas, row, column, garbage_frame, negative=True)
-          row += speed
-          obstacle.row = row
-          canvas.border()
+        if obstacle in obstacles_in_last_collisions:
+          obstacles_in_last_collisions.remove(obstacle)
+          return
+        draw_frame(canvas, row, column, garbage_frame)
+        await asyncio.sleep(0)
+        draw_frame(canvas, row, column, garbage_frame, negative=True)
+        row += speed
+        obstacle.row = row
+        canvas.border()
 
     finally:
       obstacles.remove(obstacle)
