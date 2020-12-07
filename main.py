@@ -20,11 +20,9 @@ GARBAGE_FRAMES_PATH = os.path.join(FRAMES_PATH, 'garbage_frames')
 
 def draw(canvas):
   border_size = 1
-  level = [0]
   window_height, window_width = canvas.getmaxyx()
-  mid_row = round(window_height - border_size)
-  mid_column = round(window_width / 2)
   frames_container = []
+  level = [0]
 
   canvas.nodelay(True)
   curses.curs_set(False)
@@ -37,9 +35,7 @@ def draw(canvas):
   spaceship_frames = load_frames_from_dir(ROCKET_FRAMES_PATH)
   spaceship_animation_coroutine = animate_spaceship(frames_container, spaceship_frames)
 
-  spaceship_run_coroutine = run_spaceship(canvas, frames_container, border_size)
-
-  shot_coroutine = fire(canvas, mid_row, mid_column)
+  spaceship_run_coroutine = run_spaceship(canvas,coroutines, frames_container, border_size)
 
   garbage_frames = load_frames_from_dir(GARBAGE_FRAMES_PATH)
   fill_orbit_coroutine = fill_orbit_with_garbage(
@@ -52,8 +48,6 @@ def draw(canvas):
 
   coroutines.append(spaceship_animation_coroutine)
   coroutines.append(spaceship_run_coroutine)
-  
-  coroutines.append(shot_coroutine)
 
   coroutines.append(fill_orbit_coroutine)
 
@@ -111,7 +105,7 @@ async def animate_spaceship(frames_container, frames):
     await asyncio.sleep(0)
 
 
-async def run_spaceship(canvas, frames_container, border_size):
+async def run_spaceship(canvas, coroutines, frames_container, border_size):
   main_window_height, main_window_width = canvas.getmaxyx()
 
   start_ship_row = main_window_height - border_size
@@ -126,6 +120,12 @@ async def run_spaceship(canvas, frames_container, border_size):
 
   while True:
     direction_y, direction_x, spacepressed = read_controls(canvas)
+
+    if spacepressed:
+      shot_pos_x = frame_pos_x + round(frame_size_x / 2)
+      shot_pos_y = frame_pos_y
+      shot_coroutine = fire(canvas, shot_pos_y, shot_pos_x)
+      coroutines.append(shot_coroutine)
 
     row_speed, column_speed = update_speed(
       row_speed,
