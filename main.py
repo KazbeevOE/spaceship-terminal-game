@@ -8,9 +8,9 @@ from itertools import cycle
 
 from fire_animation import fire
 from curses_tools import draw_frame, read_controls, get_frame_size
-from frames_loader import load_frames_from_dir
+from frames_loader import load_frames_from_dir, load_frame_from_file
 from physics import update_speed
-from space_garbage import animate_flying_garbage
+from space_garbage import animate_flying_garbage, obstacles
 
 
 TIC_TIMEOUT = 0.1
@@ -18,6 +18,7 @@ STAR_SHAPES = '+*.:'
 FRAMES_PATH = 'frames'
 ROCKET_FRAMES_PATH = os.path.join(FRAMES_PATH, 'rocket_frames')
 GARBAGE_FRAMES_PATH = os.path.join(FRAMES_PATH, 'garbage_frames')
+GAME_OVER_FRAME_PATH = os.path.join(FRAMES_PATH, 'game_over_frame', 'game_over.txt')
 
 
 def draw(canvas):
@@ -156,6 +157,13 @@ async def run_spaceship(canvas, coroutines, frames_container, border_size):
     await asyncio.sleep(0)
     draw_frame(canvas, frame_pos_y, frame_pos_x, frame, negative=True)
 
+    gameover_frame = load_frame_from_file(GAME_OVER_FRAME_PATH)
+    for obstacle in obstacles:
+      if obstacle.has_collision(frame_pos_y, frame_pos_x):
+        gameover_coroutine = show_gameover(canvas, gameover_frame) 
+        coroutines.append(gameover_coroutine)
+        return
+
 async def fill_orbit_with_garbage(canvas, coroutines, border_size, level, garbage_frames, timeout_minimal=0.1):
   _, columns_number = canvas.getmaxyx()
   
@@ -181,6 +189,15 @@ def calculate_respawn_timeout(level, initial_timeout=5, complexity_factor=5):
     respawn_timeout = initial_timeout - timeout_step
     return respawn_timeout
 
+async def show_gameover(canvas, gameover_frame):
+  window_height, window_width = canvas.getmaxyx()
+  go_frame_size_y, go_frame_size_x = get_frame_size(gameover_frame)
+  go_message_pos_y = round(window_height / 2) - round(go_frame_size_y)
+  go_message_pos_x = round(window_width / 2) - round(go_frame_size_x / 2)
+
+  while True:
+    draw_frame(canvas, go_message_pos_y, go_message_pos_x, gameover_frame)
+    await asyncio.sleep(0)
 
 def run_event_loop(screens, coroutines):
   while True:
