@@ -15,11 +15,19 @@ from space_garbage import animate_flying_garbage, obstacles
 
 TIC_TIMEOUT = 0.1
 STAR_SHAPES = '+*.:'
-FRAMES_PATH = 'frames'
-ROCKET_FRAMES_PATH = os.path.join(FRAMES_PATH, 'rocket_frames')
-GARBAGE_FRAMES_PATH = os.path.join(FRAMES_PATH, 'garbage_frames')
-GAME_OVER_FRAME_PATH = os.path.join(FRAMES_PATH, 'game_over_frame', 'game_over.txt')
-
+ROCKET_FRAMES_PATH = os.path.join('frames', 'rocket_frames')
+GARBAGE_FRAMES_PATH = os.path.join('frames', 'garbage_frames')
+GAME_OVER_FRAME_PATH = os.path.join('frames', 'game_over_frame', 'game_over.txt')
+PHRASES = {
+    1957: "First Sputnik",
+    1961: "Gagarin flew!",
+    1969: "Armstrong got on the moon!",
+    1971: "First orbital space station Salute-1",
+    1981: "Flight of the Shuttle Columbia",
+    1998: 'ISS start building',
+    2011: 'Messenger launch to Mercury',
+    2020: "Take the plasma gun! Shoot the garbage!",
+}
 
 def draw(canvas):
   border_size = 1
@@ -49,10 +57,19 @@ def draw(canvas):
     garbage_frames
   )
 
+  count_years_coroutine = count_years(level)
+  show_current_year_coroutine = show_current_year(
+    canvas,
+    level
+  )
+
   coroutines.append(spaceship_animation_coroutine)
   coroutines.append(spaceship_run_coroutine)
 
   coroutines.append(fill_orbit_coroutine)
+
+  coroutines.append(count_years_coroutine)
+  coroutines.append(show_current_year_coroutine)
 
   screens = (canvas, canvas)
   run_event_loop(screens, coroutines)
@@ -218,6 +235,27 @@ def run_event_loop(screens, coroutines):
       screen.refresh()
     time.sleep(TIC_TIMEOUT)
 
+async def count_years(year_counter, level_duration_sec=3):
+  while True:
+    await go_to_sleep(level_duration_sec)
+    year_counter[0] += 1
+
+async def show_current_year(canvas, year_counter, start_year = 1957):
+  window_height, window_widht = canvas.getmaxyx()
+
+  year_bar_lenght = 9
+  year_bar_pos_y = 1
+  year_bar_pos_x = round(window_widht / 2) - round(year_bar_lenght / 2)
+
+  while True:
+    current_year = start_year + year_counter[0]
+    year_bar_message = PHRASES[current_year] if current_year in PHRASES.keys() else f"Year {current_year}"
+    canvas.addstr(
+      year_bar_pos_y,
+      year_bar_pos_x,
+      year_bar_message
+    )
+    await asyncio.sleep(0)
 
 if __name__ == '__main__':
     curses.update_lines_cols()
